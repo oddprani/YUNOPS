@@ -4,11 +4,43 @@ import { Monitoring } from './components/Monitoring';
 import { Pipelines } from './components/Pipelines';
 import { Logs } from './components/Logs';
 import { Deployments } from './components/Deployments';
+import { Security } from './components/Security';
 import { Layout, Box, Shield, Activity, Terminal, Cpu } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useNotifications } from './context/NotificationContext';
+import { useEffect, useRef } from 'react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
+  const { addNotification } = useNotifications();
+  const notifiedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const checkSecurity = async () => {
+      try {
+        const res = await fetch('/api/metrics');
+        const data = await res.json();
+        if (data.security && data.security.vulnerabilities) {
+          data.security.vulnerabilities.forEach((v: any) => {
+            if (v.severity === 'critical' && v.status === 'open' && !notifiedRef.current.has(v.id)) {
+              addNotification(
+                'Critical Security Threat',
+                `A critical risk "${v.name}" was detected on ${v.target}. Mitigation required.`,
+                'error'
+              );
+              notifiedRef.current.add(v.id);
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Global alert check failed", e);
+      }
+    };
+
+    const interval = setInterval(checkSecurity, 10000);
+    checkSecurity(); // Immediate check
+    return () => clearInterval(interval);
+  }, [addNotification]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -23,7 +55,7 @@ export default function App() {
       case 'deployments':
         return <Deployments />;
       case 'security':
-        return <PlaceholderSection title="Security & Compliance" icon={Shield} />;
+        return <Security />;
       default:
         return <Overview setActiveTab={setActiveTab} />;
     }

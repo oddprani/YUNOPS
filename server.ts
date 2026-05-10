@@ -16,24 +16,27 @@ async function startServer() {
   // Real System Stats Generator
   const getMetrics = async () => {
     try {
-      const [cpu, mem, osInfo, currentLoad] = await Promise.all([
+      const [cpu, mem, osInfo, currentLoad, network] = await Promise.all([
         si.cpu(),
         si.mem(),
         si.osInfo(),
-        si.currentLoad()
+        si.currentLoad(),
+        si.networkStats()
       ]);
 
       const uptimeSeconds = os.uptime();
       const days = Math.floor(uptimeSeconds / (24 * 3600));
       const hours = Math.floor((uptimeSeconds % (24 * 3600)) / 3600);
       const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+      
+      const netStats = network[0] || { rx_sec: 0, tx_sec: 0 };
 
       return {
         cpu: {
           usage: Math.round(currentLoad.currentLoad),
           history: Array.from({ length: 20 }, (_, i) => ({
             time: new Date(Date.now() - (19 - i) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            value: Math.floor(Math.random() * 10) + Math.round(currentLoad.currentLoad)
+            value: Math.floor(Math.random() * 5) + Math.round(currentLoad.currentLoad)
           }))
         },
         memory: {
@@ -44,6 +47,23 @@ async function startServer() {
             time: new Date(Date.now() - (19 - i) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
             value: Math.round((mem.active / mem.total) * 100) + (Math.random() * 2 - 1)
           }))
+        },
+        network: {
+          rx: (netStats.rx_sec / 1024).toFixed(2), // KB/s
+          tx: (netStats.tx_sec / 1024).toFixed(2), // KB/s
+          history: Array.from({ length: 20 }, (_, i) => ({
+            time: new Date(Date.now() - (19 - i) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            rx: Math.max(0, netStats.rx_sec / 1024 + (Math.random() * 50 - 25)),
+            tx: Math.max(0, netStats.tx_sec / 1024 + (Math.random() * 20 - 10))
+          }))
+        },
+        security: {
+          score: 84,
+          vulnerabilities: [
+            { id: 'v-1', severity: 'high', name: 'Outdated SSL Lib', target: 'api-gateway', status: 'open' },
+            { id: 'v-2', severity: 'medium', name: 'Open SSH Port', target: 'bastion-host', status: 'fixed' },
+            { id: 'v-3', severity: 'critical', name: 'SQL Injection Risk', target: 'auth-service', status: 'open' }
+          ]
         },
         latency: Math.floor(Math.random() * 20) + 5,
         uptime: `${days}d ${hours}h ${minutes}m`,

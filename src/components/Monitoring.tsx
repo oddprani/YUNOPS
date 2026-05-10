@@ -8,6 +8,11 @@ import { cn } from '../lib/utils';
 interface MetricData {
   cpu: { usage: number; history: { time: string; value: number }[] };
   memory: { usage: number; total: string; free: string; history: { time: string; value: number }[] };
+  network: { 
+    rx: string; 
+    tx: string; 
+    history: { time: string; rx: number; tx: number }[] 
+  };
   latency: number;
   uptime: string;
   system: {
@@ -186,31 +191,78 @@ export function Monitoring() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="glass-panel rounded-2xl p-6 border border-white/10">
-          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em] mb-6">Execution Environment (Backend)</h3>
-          <div className="grid grid-cols-2 gap-y-6">
-            <InfoItem label="Hostname" value={data.system.hostname} />
-            <InfoItem label="OS / Distro" value={data.system.type} />
-            <InfoItem label="Kernel" value={data.system.release} />
-            <InfoItem label="Arch" value={data.system.arch} />
-            <InfoItem label="Cores" value={`${data.system.cpus} Logical`} />
-            <InfoItem label="Environment" value="Cloud Run (Linux)" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="glass-panel rounded-2xl p-6 border border-white/10 lg:col-span-2">
+          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em] mb-6">Network Througput (Total Bytes In/Out)</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data.network.history}>
+                <defs>
+                  <linearGradient id="colorRx" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorTx" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#EC4899" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#EC4899" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis 
+                  dataKey="time" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#71717a', fontSize: 10 }}
+                />
+                <YAxis hide />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '12px' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="rx" 
+                  name="Inbound (KB/s)"
+                  stroke="#8B5CF6" 
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorRx)" 
+                  animationDuration={300}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="tx" 
+                  name="Outbound (KB/s)"
+                  stroke="#EC4899" 
+                  strokeWidth={2}
+                  fillOpacity={1} 
+                  fill="url(#colorTx)" 
+                  animationDuration={300}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="glass-panel rounded-2xl p-6 border border-white/10">
-          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em] mb-6">Client Node (Your Device)</h3>
-          <div className="grid grid-cols-2 gap-y-6">
-            <InfoItem label="Detected OS" value={clientInfo?.os || "Detecting..."} />
-            <InfoItem label="Engine" value={clientInfo?.browser || "Detecting..."} />
-            <InfoItem label="Connection" value="WebSocket/HTTPS" />
-            <InfoItem label="Security" value="Sandboxed" />
-            <InfoItem label="Resolution" value={`${window.innerWidth}x${window.innerHeight}`} />
-            <InfoItem label="Touch Support" value={('ontouchstart' in window) ? 'Yes' : 'No'} />
+        <div className="glass-panel rounded-2xl p-6 border border-white/10 flex flex-col justify-center">
+          <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em] mb-8">Node Summary</h3>
+          <div className="space-y-6">
+            <StatRow label="Ingress Rate" value={`${data.network.rx} KB/s`} color="text-purple-500" />
+            <StatRow label="Egress Rate" value={`${data.network.tx} KB/s`} color="text-pink-500" />
+            <StatRow label="Host Platform" value={data.system.platform} color="text-blue-400" />
+            <StatRow label="Cluster Node" value={data.system.hostname} color="text-zinc-400" />
+            <StatRow label="Instance Id" value="cr-7a2-f9" color="text-zinc-600" />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatRow({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{label}</span>
+      <span className={cn("text-sm font-mono font-medium", color)}>{value}</span>
     </div>
   );
 }
