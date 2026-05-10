@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Filter, Cpu, Wand2, RefreshCcw, AlertTriangle, Info, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getDebuggingSuggestion } from '../lib/gemini';
+import { getDebuggingSuggestion } from '../lib/analyzer';
 
 interface LogEntry {
   id: number;
@@ -108,15 +108,15 @@ export function Logs() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-green-500 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-lg w-fit">
+                <div className="flex items-center gap-2 text-blue-500 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-lg w-fit">
                   <Wand2 className="w-4 h-4" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">AI Debugging Insight</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Autonomous Analysis</span>
                 </div>
 
                 {isAiLoading ? (
                   <div className="p-8 flex flex-col items-center justify-center gap-4 text-zinc-500 animate-pulse">
                     <RefreshCcw className="w-8 h-8 animate-spin" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Synthesizing metadata...</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Synthesizing telemetry...</span>
                   </div>
                 ) : aiSuggestion ? (
                   <motion.div 
@@ -138,7 +138,7 @@ export function Logs() {
                   </motion.div>
                 ) : (
                   <div className="p-8 text-center text-zinc-600 text-[10px] uppercase font-bold tracking-widest">
-                    Select a log to analyze with Sentinel AI
+                    Select a log to analyze with YUNOPS Core
                   </div>
                 )}
               </div>

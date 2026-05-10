@@ -54,7 +54,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function NotificationItem({ notification, onClose }: { notification: Notification; onClose: () => void }) {
+function NotificationItem({ notification, onClose }: { notification: Notification; onClose: () => void; key?: string }) {
   const icons = {
     success: <CheckCircle2 className="w-5 h-5 text-green-500" />,
     error: <AlertCircle className="w-5 h-5 text-red-500" />,

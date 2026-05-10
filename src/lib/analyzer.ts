@@ -4,7 +4,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export async function getDebuggingSuggestion(logMessage: string) {
   if (!process.env.GEMINI_API_KEY) {
-    return "Gemini API key is not configured. Please add it to your secrets.";
+    return "Telemetry API key is not configured. Please check your environment.";
   }
 
   try {

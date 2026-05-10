@@ -88,7 +88,7 @@ function Overview({ setActiveTab }: { setActiveTab: (t: string) => void }) {
   return (
     <div className="p-8 space-y-8 max-w-7xl">
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight">YunOps Command Center</h1>
+        <h1 className="text-4xl font-bold tracking-tight">YUNOPS Command Center</h1>
         <p className="text-zinc-500 text-lg">Cross-cluster telemetry and autonomous AI orchestration.</p>
       </div>
 

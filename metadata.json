@@ -1,6 +1,6 @@
 {
-  "name": "YunOps AI DevOps Dashboard",
-  "description": "An enterprise-grade AI-powered DevOps monitoring and management platform featuring real-time server monitoring, CI/CD visualization, and AI-driven debugging suggestions.",
+  "name": "YUNOPS",
+  "description": "High-performance DevOps telemetry and infrastructure monitoring dashboard for server clusters and local workstations.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

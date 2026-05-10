@@ -13,8 +13,16 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Real System Stats Generator
-  const getMetrics = async () => {
+  // Metric Buffer for History
+  let historicalData: any = {
+    cpu: [],
+    memory: [],
+    network: []
+  };
+
+  const MAX_HISTORY = 30;
+
+  const updateMetrics = async () => {
     try {
       const [cpu, mem, osInfo, currentLoad, network] = await Promise.all([
         si.cpu(),
@@ -24,38 +32,42 @@ async function startServer() {
         si.networkStats()
       ]);
 
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const netStats = network[0] || { rx_sec: 0, tx_sec: 0 };
+
+      const cpuUsage = Math.round(currentLoad.currentLoad);
+      const memUsage = Math.round((mem.active / mem.total) * 100);
+      const rx = netStats.rx_sec / 1024;
+      const tx = netStats.tx_sec / 1024;
+
+      historicalData.cpu.push({ time, value: cpuUsage });
+      historicalData.memory.push({ time, value: memUsage });
+      historicalData.network.push({ time, rx, tx });
+
+      if (historicalData.cpu.length > MAX_HISTORY) historicalData.cpu.shift();
+      if (historicalData.memory.length > MAX_HISTORY) historicalData.memory.shift();
+      if (historicalData.network.length > MAX_HISTORY) historicalData.network.shift();
+
       const uptimeSeconds = os.uptime();
       const days = Math.floor(uptimeSeconds / (24 * 3600));
       const hours = Math.floor((uptimeSeconds % (24 * 3600)) / 3600);
       const minutes = Math.floor((uptimeSeconds % 3600) / 60);
-      
-      const netStats = network[0] || { rx_sec: 0, tx_sec: 0 };
 
-      return {
+      const latestMetrics = {
         cpu: {
-          usage: Math.round(currentLoad.currentLoad),
-          history: Array.from({ length: 20 }, (_, i) => ({
-            time: new Date(Date.now() - (19 - i) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            value: Math.floor(Math.random() * 5) + Math.round(currentLoad.currentLoad)
-          }))
+          usage: cpuUsage,
+          history: historicalData.cpu
         },
         memory: {
-          usage: Math.round((mem.active / mem.total) * 100),
+          usage: memUsage,
           total: (mem.total / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
           free: (mem.available / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
-          history: Array.from({ length: 20 }, (_, i) => ({
-            time: new Date(Date.now() - (19 - i) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            value: Math.round((mem.active / mem.total) * 100) + (Math.random() * 2 - 1)
-          }))
+          history: historicalData.memory
         },
         network: {
-          rx: (netStats.rx_sec / 1024).toFixed(2), // KB/s
-          tx: (netStats.tx_sec / 1024).toFixed(2), // KB/s
-          history: Array.from({ length: 20 }, (_, i) => ({
-            time: new Date(Date.now() - (19 - i) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            rx: Math.max(0, netStats.rx_sec / 1024 + (Math.random() * 50 - 25)),
-            tx: Math.max(0, netStats.tx_sec / 1024 + (Math.random() * 20 - 10))
-          }))
+          rx: rx.toFixed(2),
+          tx: tx.toFixed(2),
+          history: historicalData.network
         },
         security: {
           score: 84,
@@ -65,7 +77,7 @@ async function startServer() {
             { id: 'v-3', severity: 'critical', name: 'SQL Injection Risk', target: 'auth-service', status: 'open' }
           ]
         },
-        latency: Math.floor(Math.random() * 20) + 5,
+        latency: Math.floor(Math.random() * 5) + 2,
         uptime: `${days}d ${hours}h ${minutes}m`,
         system: {
           hostname: osInfo.hostname,
@@ -78,29 +90,25 @@ async function startServer() {
           brand: cpu.brand
         }
       };
-    } catch (error) {
-      console.error("Metrics Collection Error:", error);
-      return {};
+
+      return latestMetrics;
+    } catch (e) {
+      console.error(e);
+      return null;
     }
   };
 
-  const getPipelines = () => [
-    { id: 'p-1', name: 'main-branch-ci', status: 'success', duration: '4m 12s', timestamp: new Date().toISOString() },
-    { id: 'p-2', name: 'production-deploy', status: 'running', duration: '2m 45s', timestamp: new Date().toISOString() },
-    { id: 'p-3', name: 'v2-feature-api', status: 'failed', duration: '1m 2s', timestamp: new Date(Date.now() - 3600000).toISOString() },
-  ];
-
-  const getLogs = () => [
-    { id: 1, level: 'info', message: `Successfully connected to Kubernetes cluster context: ${os.hostname()}`, timestamp: new Date().toISOString() },
-    { id: 2, level: 'warn', message: 'Pod "api-gateway-7f8d" memory usage exceeding 80% threshold', timestamp: new Date().toISOString() },
-    { id: 3, level: 'error', message: 'Database connection timeout on node "db-primary-0"', timestamp: new Date().toISOString() },
-    { id: 4, level: 'info', message: 'CI/CD pipeline "main-branch-ci" triggered by commit 7a2b9f1', timestamp: new Date().toISOString() },
-  ];
+  let cachedMetrics: any = null;
+  setInterval(async () => {
+    cachedMetrics = await updateMetrics();
+  }, 1000);
 
   // API Routes
   app.get('/api/metrics', async (req, res) => {
-    const metrics = await getMetrics();
-    res.json(metrics);
+    if (!cachedMetrics) {
+      cachedMetrics = await updateMetrics();
+    }
+    res.json(cachedMetrics);
   });
 
   app.get('/api/pipelines', (req, res) => {
@@ -135,7 +143,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 YunOps Backend running on http://localhost:${PORT}`);
+    console.log(`🚀 YUNOPS Server running on http://localhost:${PORT}`);
   });
 }
 
